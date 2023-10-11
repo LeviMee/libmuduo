@@ -5,6 +5,7 @@ base class cannot refer derived class
 */ 
 
 #include "Poller.h"
+#include "EPollPoller.h"
 
 #include <stdlib.h>
 
@@ -16,6 +17,6 @@ Poller* Poller::newDefaultPoller(EventLoop* loop)
     }
     else
     {
-        return nullptr;
+        return new EPollPoller(loop);
     }
 }

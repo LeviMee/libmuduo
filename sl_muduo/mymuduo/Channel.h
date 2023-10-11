@@ -34,9 +34,8 @@ public:
     void tie(const std::shared_ptr<void>&);
 
     int fd() const {return fd_;}
-    int events() const {return events_};
+    int events() const {return events_;}
     void set_revents(int revt) {revents_ = revt;}
-    bool isNoneEvent() const {return events_ == kNoneEvent;}
 
     // set the state for fd events
     void enableReading() {events_ |= kReadEvent; update();}
@@ -50,7 +49,7 @@ public:
     bool isWriting() const {return events_ & kWriteEvent;}
     bool isReading() const {return events_ & kReadEvent;}
 
-    int index() {return index_;}
+    int index() const {return index_;}
     void set_index(int idx) {index_ = idx;}
 
     EventLoop* ownerLoop() {return loop_;}

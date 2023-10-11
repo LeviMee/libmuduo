@@ -1,10 +1,10 @@
-#include "InetAdress.h"
+#include "InetAddress.h"
 
 #include <strings.h>
 #include <string.h>
 
 // default parameter only occur once in declaration or definition
-InetAdress::InetAdress(uint16_t port, std::string ip)
+InetAddress::InetAddress(uint16_t port, std::string ip)
 {
     bzero(&addr_, sizeof(addr_));
     addr_.sin_addr.s_addr = inet_addr(ip.c_str()); // network byte order
@@ -12,14 +12,14 @@ InetAdress::InetAdress(uint16_t port, std::string ip)
     addr_.sin_port = htons(port);
 }
 
-std::string InetAdress::toIp() const
+std::string InetAddress::toIp() const
 {
     char buf[64] = {0};
     inet_ntop(AF_INET, &addr_.sin_addr, buf, sizeof(buf));
     return buf;
 }
 
-std::string InetAdress::toIpPort() const
+std::string InetAddress::toIpPort() const
 {
     char buf[64] = {0};
     inet_ntop(AF_INET, &addr_.sin_addr, buf, sizeof(buf));
@@ -29,7 +29,7 @@ std::string InetAdress::toIpPort() const
     return buf;
 }
 
-uint16_t InetAdress::toPort() const
+uint16_t InetAddress::toPort() const
 {
     return ntohs(addr_.sin_port);
 }
@@ -37,7 +37,7 @@ uint16_t InetAdress::toPort() const
 #include <iostream>
 int main()
 {
-    InetAdress addr(8000);
+    InetAddress addr(8000);
     std::cout << addr.toIpPort() << std::endl;
     return 0;
 }
