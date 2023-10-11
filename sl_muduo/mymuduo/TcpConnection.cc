@@ -11,6 +11,8 @@
 #include <sys/socket.h>
 #include <strings.h>
 #include <netinet/tcp.h>
+#include <string>
+
 
 static EventLoop* CheckLoopNotNull(EventLoop* loop)
 {
@@ -45,12 +47,120 @@ TcpConnection::TcpConnection(EventLoop* loop,
     socket_->setKeepAlive(true);
 }
 
-
-
 TcpConnection::~TcpConnection()
 {
     LOG_INFO("TcpConnection::dtor[%s] at fd = %d state = %d \n", name_.c_str(),
         channel_->fd(), (int)state_);
+}
+
+void TcpConnection::send(const std::string& buf)
+{
+    if (state_ == kConnected)
+    {
+        if (loop_->isInLoopThread())
+        {
+            sendInLoop(buf.c_str(), buf.size());
+        }
+        else
+        {
+            loop_->runInLoop(std::bind(&TcpConnection::sendInLoop, this, buf.c_str(), buf.size()));
+        }
+    }
+}
+
+void TcpConnection::sendInLoop(const void* data, size_t len)
+{
+    ssize_t nwrote = 0;
+    size_t remaining = len;
+    bool faultError = false;
+
+    // shutdown() is called; thus cannot send
+    if (state_ == kDisconnected)
+    {
+        LOG_ERROR("Disconnected, give up writing!");
+        return;
+    }
+
+    // channel_ write data for the first time and buffer is empty
+    if (!channel_->isWriting() && outputBuffer_.readableBytes() == 0)
+    {
+        nwrote = ::write(channel_->fd(), data, len);
+        if (nwrote >= 0)
+        {
+            remaining = len - nwrote;
+            if (remaining == 0 && writeCompleteCallback_)
+            {
+                loop_->queueInLoop(std::bind(writeCompleteCallback_, shared_from_this()));
+            }
+        }
+    }
+    else
+    {
+        nwrote = 0;
+        if (errno != EWOULDBLOCK)
+        {
+            LOG_ERROR("TcpConnection::sendInLoop\n");
+            if (errno == EPIPE || errno == ECONNRESET)
+            {
+                faultError = true;
+            }
+        }
+    }
+
+    // write does not send all the data; remaining data is saved in buffer
+    // register epollout;
+    if (!faultError && remaining > 0)
+    {
+        size_t oldLen = outputBuffer_.readableBytes();
+        if (oldLen + remaining >= highWaterMark_
+            && oldLen < highWaterMark_
+            && highWaterMark_)
+        {
+            loop_->queueInLoop(std::bind(highWaterMarkCallback_, shared_from_this(), oldLen + remaining));
+        }
+        outputBuffer_.append((char*)data + nwrote, remaining);
+        if (!channel_->isWriting())
+        {
+            channel_->enableWriting();
+        }
+    }
+}
+
+void TcpConnection::shutdown()
+{
+    if (state_ == kConnected)
+    {
+        setState(kDisconnecting);
+        loop_->runInLoop(std::bind(&TcpConnection::shutdownInLoop, this));
+    }
+}
+
+void TcpConnection::shutdownInLoop()
+{
+    if (!channel_->isWriting())
+    {
+        socket_->shutdownWrite();
+    }
+}
+
+void TcpConnection::connectEstablished()
+{
+    setState(kConnected);
+    channel_->tie(shared_from_this());
+    channel_->enableReading();
+
+    connectionCallback_(shared_from_this());
+}
+
+void TcpConnection::connectDestroyed()
+{
+    if (state_ == kConnected)
+    {
+        setState(kDisconnected);
+        channel_->disableAll();
+        connectionCallback_(shared_from_this());
+    }
+    channel_->remove();
 }
 
 void TcpConnection::handleRead(Timestamp receiveTime)
@@ -104,6 +214,7 @@ void TcpConnection::handleWrite()
     }
 }
 
+// poller =>channel::closeCallback => TcpConnection::handleClose
 void TcpConnection::handleClose()
 {
     LOG_INFO("fd = %d state = %d \n", channel_->fd(), (int)state_);

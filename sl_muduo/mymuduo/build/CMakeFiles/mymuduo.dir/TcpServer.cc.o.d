@@ -217,4 +217,10 @@ CMakeFiles/mymuduo.dir/TcpServer.cc.o: \
  /usr/include/c++/11/bits/enable_special_members.h \
  /usr/include/c++/11/bits/unordered_map.h \
  /usr/include/c++/11/bits/erase_if.h \
- /home/levilee/muduo_Webserver/sl_muduo/mymuduo/Logger.h
+ /home/levilee/muduo_Webserver/sl_muduo/mymuduo/Logger.h \
+ /home/levilee/muduo_Webserver/sl_muduo/mymuduo/TcpConnection.h \
+ /home/levilee/muduo_Webserver/sl_muduo/mymuduo/Buffer.h \
+ /usr/include/c++/11/algorithm /usr/include/c++/11/bits/stl_algo.h \
+ /usr/include/c++/11/bits/algorithmfwd.h \
+ /usr/include/c++/11/bits/stl_heap.h \
+ /usr/include/c++/11/bits/uniform_int_dist.h /usr/include/strings.h
