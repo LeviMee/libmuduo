@@ -53,7 +53,7 @@ public:
     void connectEstablished();
     void connectDestroyed();
 
-
+    void send(const std::string& buf);
 private:
     enum StateE {kDisconnected, kConnected, kConnecting, kDisconnecting};
     void setState(StateE state) { state_ = state; }
@@ -63,7 +63,7 @@ private:
     void handleClose();
     void handleError();
 
-    void send(const std::string& buf);
+
     void sendInLoop(const void* message, size_t len);
     void shutdownInLoop();
 
